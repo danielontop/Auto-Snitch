@@ -1,14 +1,9 @@
-import logging, os , datetime , time , json , threading , requests , httpx , tls_client
-snitchSettings = {
-    'guildID': '',
-    'channelId' : '',
-    'proxy' : 'clockwrks:autoSnitch@3333.4444.555:2010', # Use a Rotating Proxy
-    'token' : '',
-    'webhook' : '',
-}
-guildId, channelId  , proxy , token , webhook = snitchSettings['guildID'] , snitchSettings['channelId'] , snitchSettings['proxy'] , snitchSettings['token'] , snitchSettings['webhook']
+import logging, os , datetime , time , json , threading , requests , httpx , tls_client ; from json import load
+config = load(open('config.json'))
+guildId , channelId  , proxy , token , webhook , blacklistedRoles , blacklistedUsers = config['guildID'] , config['channelId'] , config['proxy'] , config['token'] , config['webhook'] , config['blacklistedRoles'] , config['blacklistedUsers'] ,
 
-try: import websocket
+try:
+    import websocket
 except:
     os.system("pip install websocket-client")
 
@@ -68,11 +63,9 @@ class DiscordSocket(websocket.WebSocketApp):
         self.guild_id = guild_id
         self.channel_id = channel_id
         self.blacklisted_roles, self.blacklisted_users = [], []
-        with open("./data/config.json") as f:
-            blacklisted = json.load(f)
-        for i in blacklisted["blacklistedRoles"]:
+        for i in blacklistedRoles:
             self.blacklisted_roles.append(str(i))
-        for i in blacklisted["blacklistedUsers"]:
+        for i in blacklistedUsers:
             self.blacklisted_users.append(str(i))
 
         self.socket_headers = {
@@ -107,8 +100,7 @@ class DiscordSocket(websocket.WebSocketApp):
 
     def scrapeUsers(self):
         if self.endScraping == False:
-            self.send('{"op":14,"d":{"guild_id":"' + self.guild_id +
-                      '","typing":true,"activities":true,"threads":true,"channels":{"' + self.channel_id + '":' + json.dumps(self.ranges) + '}}}')
+            self.send('{"op":14,"d":{"guild_id":"' + self.guild_id + '","typing":true,"activities":true,"threads":true,"channels":{"' + self.channel_id + '":' + json.dumps(self.ranges) + '}}}')
 
     def sock_open(self, ws):
         self.send('{"op":2,"d":{"token":"' + self.token + '","capabilities":125,"properties":{"os":"Windows","browser":"Firefox","device":"","system_locale":"it-IT","browser_user_agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:94.0) Gecko/20100101 Firefox/94.0","browser_version":"94.0","os_version":"10","referrer":"","referring_domain":"","referrer_current":"","referring_domain_current":"","release_channel":"stable","client_build_number":103981,"client_event_source":null},"presence":{"status":"online","since":0,"activities":[],"afk":false},"compress":false,"client_state":{"guild_hashes":{},"highest_last_message_id":"0","read_state_version":0,"user_guild_settings_version":-1,"user_settings_version":-1}}}')
@@ -242,13 +234,16 @@ def friend(userId):
             for tokens in loadedTokens:
                 token = tokens.strip()
                 sessionToken = session(token)
+
                 addUserID = sessionToken.put('https://discord.com/api/v9/users/@me/relationships/%s' % userId, json={} , proxy = rotateProxy())
                 if addUserID.status_code in [200, 204, 201]:
                     print('Added relationship successfully')
+
                 elif addUserID.status_code in [429]:
                     retryTime = addUserID.json()['retry_after']
                     time.sleep(retryTime)
                     session.put('https://discord.com/api/v9/users/@me/relationships/%s' % userId, json = {}, proxy = rotateProxy())
+
     except Exception as Err:
         print(Err)
 
@@ -262,19 +257,25 @@ if __name__ == '__main__':
                 sessionSnitch = session(token)
                 joinedTime = sessionSnitch.get('https://discord.com/api/v9/guilds/%s/members/%s' % (guildId, member))
                 try:
-                    joinDate = joinedTime.json()['joined_at'] ; minTime = datetime.timedelta(seconds = 150) ;  currentTime = datetime.datetime.now(datetime.timezone.utc) ;  newTime = datetime.datetime.fromisoformat(joinDate)
+                    joinDate = joinedTime.json()['joined_at'] ; minTime = datetime.timedelta(seconds = 150) 
+                    currentTime = datetime.datetime.now(datetime.timezone.utc) 
+                    newTime = datetime.datetime.fromisoformat(joinDate)
                     timeDifference = currentTime - newTime
+
                     if timeDifference <= minTime:
                         logging.info("User ID: %s is new to the Server" % member)
+
                         response = sessionSnitch.get('https://discord.com/api/v9/users/%s' % member).json()
                         tag = '%s#%s' % (response['username'], response['discriminator'])
                         guildName = sessionSnitch.get('https://discord.com/api/v9/guilds/%s' % guildId).json()['name']
                         response = sessionSnitch.get('https://discord.com/api/v9/users/%s' % member).json()
                         userTag = '%s#%s' % (response['username'], response['discriminator'])
                         joinedTime = sessionSnitch.get('https://discord.com/api/v9/guilds/%s/members/%s' % (guildId, member))
+                        
                         formatTime = newTime.strftime("%I:%M %p")
                         formatDate = newTime.strftime("%m-%d-%Y")
                         formatTimeandDate = "%s on %s" % (formatDate, formatTime)
+
                         payload = {
                             "content": "@here New User Joined %s" % guildId,
                             "embeds": [
@@ -283,30 +284,37 @@ if __name__ == '__main__':
                                     "author": {"name": "Snitched Successful"},
                                     "timestamp": str(datetime.datetime.utcnow()),
                                     "fields": [
-                                        {"name": "Version", "value": "On Join"},
-                                        {"name": "Server Join Time", "value": str(formatTimeandDate)},
                                         {
-                                            "name": "Username/Tag | User Id",
-                                            "value": "%s | %s" % (userTag, member),
+                                            "name": "Version", "value": "On Join"
                                         },
-                                        {"name": "Mention", "value": "<@%s>" % (member)},
                                         {
-                                            "name": "Guild Name | Guild ID",
-                                            "value": "%s | %s" % (guildName, guildId),
+                                            "name": "Server Join Time", "value": str(formatTimeandDate)},
+                                        {
+                                            "name": "Username/Tag | User Id", "value": "%s | %s" % (userTag, member),
+                                        },
+                                        
+                                        {
+                                            "name": "Mention", "value": "<@%s>" % (member)
+                                        },
+                                        {
+                                            "name": "Guild Name | Guild ID", "value": "%s | %s" % (guildName, guildId),
                                         },
                                     ],
-                                    "thumbnail": {
-                                        "url": "https://cdn.discordapp.com/avatars/%s/%s.png"
-                                        % (member, response["avatar"])
+                                    "thumbnail":
+                                    {
+                                        "url": "https://cdn.discordapp.com/avatars/%s/%s.png" % (member, response["avatar"])
                                     },
                                 }
                             ],
                         }
                         requests.post('%s' % webhook, json = payload)
+
                         for i in range(10):
                             threading.Thread(target = friend, args = (member,)).start()
+
                 except Exception as Err:
                     print(Err)
                     continue
+                
         currentMembers = newMembers
         time.sleep(3)

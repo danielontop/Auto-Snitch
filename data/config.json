@@ -1,4 +1,9 @@
 {
     "blacklistedRoles": ["1", "2", "3"],
-    "blacklistedUsers": ["4", "5"]
+    "blacklistedUsers": ["4", "5"],
+    "guildID": "",
+    "channelId" : "",
+    "proxy" : "clockwrks:autoSnitch@3333.4444.555:2010",
+    "token" : "",
+    "webhook" : ""
 }

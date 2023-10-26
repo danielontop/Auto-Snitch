@@ -1,7 +1,7 @@
 import logging, os , datetime , time , json , threading , requests , httpx , tls_client
 snitchSettings = {
-	'guildID': '',
-	'channelId' : '',
+    'guildID': '',
+    'channelId' : '',
     'proxy' : 'clockwrks:autoSnitch@3333.4444.555:2010', # Use a Rotating Proxy
     'token' : '',
     'webhook' : '',

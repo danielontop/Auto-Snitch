@@ -276,7 +276,7 @@ if __name__ == '__main__':
                         formatDate = newTime.strftime("%m-%d-%Y")
                         formatTimeandDate = "%s on %s" % (formatDate, formatTime)
                         payload = {
-                            "content": "<@&1162361414204280892> New User Joined %s" % guildId,
+                            "content": "@here New User Joined %s" % guildId,
                             "embeds": [
                                 {
                                     "color": 161791,

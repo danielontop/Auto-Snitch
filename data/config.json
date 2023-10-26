@@ -1,0 +1,4 @@
+{
+    "blacklistedRoles": ["1", "2", "3"],
+    "blacklistedUsers": ["4", "5"]
+}
